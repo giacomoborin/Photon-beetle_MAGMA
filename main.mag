@@ -127,8 +127,7 @@ function SubCells(X)
 	return [ [ SBOX[Seqint(Reverse(ChangeUniverse(X[i][j],Integers())),2) + 1 ] : j in [1..8]] : i in [1..8]];
 end function;
 
-function AddCostant(X,k) 
-    RC:=[
+RC:=[
     	[ GF(2)!0, 0, 0, 1 ], 
         [ GF(2)!0, 0, 1, 1 ], 
         [ GF(2)!0, 1, 1, 1 ], 
@@ -142,7 +141,7 @@ function AddCostant(X,k)
         [ GF(2)!0, 1, 0, 1 ], 
         [ GF(2)!1, 0, 1, 0 ]
 	]; 
-    IC:=[
+IC:=[
     	[ GF(2)!0, 0, 0, 0 ], 
         [ GF(2)!0, 0, 0, 1 ], 
         [ GF(2)!0, 0, 1, 1 ], 
@@ -152,14 +151,16 @@ function AddCostant(X,k)
         [ GF(2)!1, 1, 0, 0 ], 
         [ GF(2)!1, 0, 0, 0 ]
 	]; 
-    for i in {1..8} do 
-        El:=X[i][1]; 
-        for j in {1..4} do 
-            El[j]:=El[j]+RC[k][j]+IC[i][j]; 
-        end for; 
-        X[i][1]:=El; 
-    end for; 
-    return X; 
+
+function AddCostant(X,k) 
+        for i in {1..8} do 
+        	El:=X[i][1]; 
+        	for j in {1..4} do 
+            		El[j]:=El[j]+RC[k][j]+IC[i][j]; 
+        	end for; 
+        	X[i][1]:=El; 
+    	end for; 
+    	return X; 
 end function;
 
 function ShiftRows(X)
@@ -172,36 +173,21 @@ function ShiftRows(X)
     return X_new;
 end function;
 
+F<g>:=GF(2,4);
+M8 := [ 2, 4, 2, 11, 2, 8, 5, 6, 12, 9, 8, 13, 7, 7, 5, 2, 4, 4, 13, 13, 9, 4, 13, 9, 
+1, 6, 5, 1, 12, 13, 15, 14, 15, 12, 9, 13, 14, 5, 14, 13, 9, 14, 5, 15, 4, 12, 
+9, 6, 12, 2, 2, 10, 3, 1, 1, 14, 15, 1, 13, 10, 5, 10, 2, 3 ];
+M8 := Matrix(F,8,8,[ F!(Intseq(M8[i],2,4)) : i in [1..#M8]]);
+
 function MixColumnSerial(X)
-	F<g>:=GF(2,4);
-	S := [ 2, 4, 2, 11, 2, 8, 5, 6 ];
-	LastRow := [ F!(Intseq(S[i],2,4)) : i in [1..#S]];
-	s := [ 
-		F!0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 
-		0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
-		1
-	] cat LastRow;
-	M := Matrix(F,8,8,s);
-	//M;
 	XM := Matrix([[ F!Reverse(X[i][j]) : j in [1..8]] : i in [1..8]]);
-	/*
-	M8 := M^8;
-	M8 := Eltseq(M8);
-	M8 := [ Seqint(ChangeUniverse(Eltseq(M8[i]),Integers()),2) : i in [1..64]];
-	M8 := [ M8[(8*i-7)..(8*i)] : i in [1..8]];
-	M8;
-	*/
-	// TODO migliorare la velocità, ad esempio memorizzare già M^8
-	OUT := M^8 * XM;
+	OUT := M8 * XM;
 	// osservare che qui calcolo il prodotto come matrice, poi devo riconvertirlo a sequenza e matrice (nella nostra notazione)
-	//OUT;
 	OUT := Eltseq(OUT);
 	// PROBLEMA qui la matrice è ritornata tale quale, senza invertire i blocchi!!
-	//OUT;
 	// qui riconverto in mezzi byte, osservare che serve fare reverse perchè magma manda g in [0,1,0,0]
 	OUT := [ Reverse(Eltseq(OUT[i])) : i in [1..64]];
 	MOUT := [ OUT[(8*i-7)..(8*i)] : i in [1..8]];
-	//MOUT;
 	return MOUT;
 end function;
 
@@ -222,7 +208,6 @@ function PHOTON_256(X)
 	return &cat MatrixToList(X);
 end function;
 
-//PHOTON_256(X);
 
 
 //-----------RHO and it's functions-------------

@@ -1,0 +1,639 @@
+//-----------HANDLING FUNCTIONS-----------------
+
+
+// basic functions for conversion
+// lenght l
+function IntToSeq(n,l)
+	return ChangeUniverse(Reverse(Intseq(n,2,l)),GF(2));
+end function;
+function SeqToInt(SEQ)
+	return Seqint(Reverse(ChangeUniverse(Eltseq(SEQ),Integers())),2);
+end function;
+
+
+// from a string of hex returns the corresponding bits sequence
+function HexToBit(w)
+	if w eq "" then 
+		return [];
+	end if;
+	//OUT := ChangeUniverse(Reverse(Intseq(StringToInteger(w,16),2)),GF(2));
+	// the 0s part is necessary to pad the result if the first term is of <4 bits
+	// PROVA CAMBIO PAD TO BYTE
+	//return [ 0 : i in [1..((8-#OUT) mod 8)]] cat OUT;
+	//if #w mod 2 eq 1 then
+	//	w := "0" cat w;
+	//end if;
+	//return &cat[ ChangeUniverse(Reverse(Intseq(StringToInteger(w[i..i+1],16),2,8)),GF(2)) : i in [1..#w by 2]];
+	return ChangeUniverse(Reverse(Intseq(StringToInteger(w,16),2,4*#w)),GF(2));
+end function;
+
+function HexToBitL(w,l)
+	return ChangeUniverse(Reverse(Intseq(StringToInteger(w,16),2,l)),GF(2));
+end function;
+
+
+function BitToHex(S)
+	return IntegerToString(SeqToInt(S),16);
+end function;
+
+function BitToHexL(S,lenght)
+	if lenght eq 0 then
+		return "";
+	end if;
+	OUT := IntegerToString(SeqToInt(S),16);
+	if #OUT lt lenght then
+		OUT := &cat["0" : _ in [1..(lenght - #OUT)]] cat OUT;
+	end if;
+	return OUT;
+end function;
+
+
+function ListToMatrix(X)
+	Y := Partition(X,2);
+	return [&cat[ Reverse(Y[i]) : i in [(4*j - 3)..(4*j)]]: j in [1..8]];
+end function;
+
+
+function MatrixToList(M)
+	for i in [1..8] do
+		M[i]:= [M[i][2] , M[i][1] , M[i][4], M[i][3], M[i][6], M[i][5], M[i][8], M[i][7]];
+	end for;
+	return &cat[M[i] : i in [1..8]];
+end function;
+
+
+function E1andE2(E1,E2,a,b,c,d)
+	if E1 and E2 then
+		return a;
+	elif E1 then
+		return b;
+	elif E2 then
+		return c;
+	else
+		return d;
+	end if;
+end function;
+
+
+//------ROBA giacomo----------------------------
+
+// funzione per fare lo split in sottosequenze di r elementi (tranne l'ultima che sarà bho)
+function Split(D,r)
+	len := #D;
+	if len le r then
+		return [D];
+	end if;
+	SplitD := Partition(D[1..(r*(len div r))],r);
+	if len mod r eq 0 then
+		return SplitD;
+	end if;
+	return SplitD cat [D[(r*(len div r) + 1)..len]];
+end function;
+
+// assumiamo che S1 e S2 siano sequenze di bits con #S1 >= #S2
+// facciamo lo xor bitwhise
+// Se #S1 > #S2 aggiungiamo zeri all'inizio
+function XOR(S1,S2)
+	if #S1 eq #S2 then
+		return [S1[i] + S2[i]: i in [1..#S1]];
+	end if;
+	S2 := [ 0 : j in [1..(#S1 - #S2)] ] cat S2; 
+	return [S1[i] + S2[i]: i in [1..#S1]];
+end function;
+
+
+
+
+//-----------PHOTON-----------------------------
+
+function SubCells(X)
+	SBOX := 
+	[
+		[ GF(2)!1, 1, 0, 0 ],
+		[ GF(2)!0, 1, 0, 1 ],
+		[ GF(2)!0, 1, 1, 0 ],
+		[ GF(2)!1, 0, 1, 1 ],
+		[ GF(2)!1, 0, 0, 1 ],
+		[ GF(2)!0, 0, 0, 0 ],
+		[ GF(2)!1, 0, 1, 0 ],
+		[ GF(2)!1, 1, 0, 1 ],
+		[ GF(2)!0, 0, 1, 1 ],
+		[ GF(2)!1, 1, 1, 0 ],
+		[ GF(2)!1, 1, 1, 1 ],
+		[ GF(2)!1, 0, 0, 0 ],
+		[ GF(2)!0, 1, 0, 0 ],
+		[ GF(2)!0, 1, 1, 1 ],
+		[ GF(2)!0, 0, 0, 1 ],
+		[ GF(2)!0, 0, 1, 0 ]
+	];
+	// remark : the sequence are indexed on [1..16] so I need +1
+	return [ [ SBOX[Seqint(Reverse(ChangeUniverse(X[i][j],Integers())),2) + 1 ] : j in [1..8]] : i in [1..8]];
+end function;
+
+//[ SeqToInt(SubCells(IntToSeq(i))) : i in [0..15]];
+
+
+function AddCostant(X,k) 
+    RC:=[
+    	[ GF(2)!0, 0, 0, 1 ], 
+        [ GF(2)!0, 0, 1, 1 ], 
+        [ GF(2)!0, 1, 1, 1 ], 
+        [ GF(2)!1, 1, 1, 0 ], 
+        [ GF(2)!1, 1, 0, 1 ], 
+        [ GF(2)!1, 0, 1, 1 ], 
+        [ GF(2)!0, 1, 1, 0 ], 
+        [ GF(2)!1, 1, 0, 0 ], 
+        [ GF(2)!1, 0, 0, 1 ], 
+        [ GF(2)!0, 0, 1, 0 ], 
+        [ GF(2)!0, 1, 0, 1 ], 
+        [ GF(2)!1, 0, 1, 0 ]
+	]; 
+    IC:=[
+    	[ GF(2)!0, 0, 0, 0 ], 
+        [ GF(2)!0, 0, 0, 1 ], 
+        [ GF(2)!0, 0, 1, 1 ], 
+        [ GF(2)!0, 1, 1, 1 ], 
+        [ GF(2)!1, 1, 1, 1 ], 
+        [ GF(2)!1, 1, 1, 0 ], 
+        [ GF(2)!1, 1, 0, 0 ], 
+        [ GF(2)!1, 0, 0, 0 ]
+	]; 
+    for i in {1..8} do 
+        El:=X[i][1]; 
+        for j in {1..4} do 
+            El[j]:=El[j]+RC[k][j]+IC[i][j]; 
+        end for; 
+        X[i][1]:=El; 
+    end for; 
+    return X; 
+end function;
+
+function ShiftRows(X)
+    X_new:=[ [[] : i in [1..8] ]: j in [1..8]];
+    for i in {0..7} do
+        for j in {0..7} do
+            X_new[i+1][j+1]:=X[i+1][(i+j) mod 8 + 1];
+        end for;
+    end for;
+    return X_new;
+end function;
+
+//ShiftRows(M);
+
+function MixColumnSerial(X)
+	F<g>:=GF(2,4);
+	S := [ 2, 4, 2, 11, 2, 8, 5, 6 ];
+	LastRow := [ F!(Intseq(S[i],2,4)) : i in [1..#S]];
+	//LastRow := [g^S[i] : i in [1..8]];
+	s := 
+		[ F!0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 
+		0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+		1 ] cat LastRow;
+	M := Matrix(F,8,8,s);
+	//M;
+	XM := Matrix([[ F!Reverse(X[i][j]) : j in [1..8]] : i in [1..8]]);
+	/*
+	M8 := M^8;
+	M8 := Eltseq(M8);
+	M8 := [ Seqint(ChangeUniverse(Eltseq(M8[i]),Integers()),2) : i in [1..64]];
+	M8 := [ M8[(8*i-7)..(8*i)] : i in [1..8]];
+	M8;
+	*/
+	// TODO migliorare la velocità, ad esempio memorizzare già M^8
+	OUT := M^8 * XM;
+	// osservare che qui calcolo il prodotto come matrice, poi devo riconvertirlo a sequenza e matrice (nella nostra notazione)
+	//OUT;
+	OUT := Eltseq(OUT);
+	// PROBLEMA qui la matrice è ritornata tale quale, senza invertire i blocchi!!
+	//OUT;
+	// qui riconverto in mezzi byte, osservare che serve fare reverse perchè magma manda g in [0,1,0,0]
+	OUT := [ Reverse(Eltseq(OUT[i])) : i in [1..64]];
+	MOUT := [ OUT[(8*i-7)..(8*i)] : i in [1..8]];
+	//MOUT;
+	return MOUT;
+end function;
+
+//MixColumnSerial(M);
+
+// PHOTON will expect a List of half bytes as input (and also will return it in output)
+// for half byte I mean 4 bits (in GF(2))
+// MOMENTARY CHANGE : PHOTON will expect input as 256 bits sequence!!! 
+function PHOTON_256(X)
+	X := Partition(X,4);
+	X := ListToMatrix(X);
+	for i in [1..12] do
+		X := AddCostant(X,i);
+		X := SubCells(X);
+		X := ShiftRows(X);
+		X := MixColumnSerial(X);
+	end for;
+	return &cat MatrixToList(X);
+end function;
+
+//PHOTON_256(X);
+
+
+//-----------RHO and it's functions-------------
+
+function Ozs(V,r) 
+	// Caso particolare di stringa lunga 124 che crea problemi:
+	error if (#V eq 124) and (r eq 128), "Error in Ozs_128, since it is mean to accept only sequences of Bytes";
+	// Cosa aggiunta da GIACOMO
+	if #V ge r then
+		return V;
+	end if;
+    	O:=V cat [GF(2)!0,0,0,0,0,0,0,1]; 
+    	for i in {1..(r-#V-8)} do 
+		O:= Append(O,0); 
+    	end for; 
+    	return O; 
+end function;
+
+function ShufflePHOTON(S,r) 
+ 	S1:=S[1..Integers()!(r/2)]; 
+	S2:=S[Integers()!(r/2)+1..#S]; 
+	P:=Partition(S1,8); 
+    	App:=P;     // sequenza di appoggio. 
+    	for j in [8,7,6,5,4,3,2] do 
+        	P[#P][j]:=App[#P][j-1]; 
+    	end for; 
+    	P[#P][1]:=App[1][8]; 
+    	for i in {1..#P-1} do 
+        	for j in [8,7,6,5,4,3,2] do 
+            		P[i][j]:=App[i][j-1]; 
+        	end for; 
+        	P[i][1]:=App[i+1][8]; 
+    	end for; 
+   	P:=&cat P; 
+    	return S2 cat P; 
+end function;
+
+
+function rho(S,U,r) 
+	SHU := ShufflePHOTON(S,r);
+    	V:=XOR(SHU[1..#U],U); 
+    	S:=XOR(S,Ozs(U,r)); 
+    	return S,V; 
+end function;
+
+function rho_inv(S,V,r) 
+	SHU := ShufflePHOTON(S,r);
+    	U:=XOR(SHU[1..#V],V); 
+    	S:=XOR(S,Ozs(U,r)); 
+    	return S,U; 
+end function;
+
+
+// V is a list of half bites
+function TruncBlock(S,i)
+	if not (i mod 4) eq 0 then
+		"error in TruncBlock :",i,"is not multiple of 4";
+	end if;
+	return [S[i] : i in [1..(i/4)]];
+end function;
+
+
+
+//-----------TAG and HASH-----------------------
+
+function TAG(T_0,tau)
+	T := [];
+	T_i := T_0;
+	for i in [1..Ceiling(tau/128)] do
+		//i;	
+		T_i := PHOTON_256(T_i);
+		//T_i;
+		T cat:= T_i[1..128];
+		//T;
+	end for;
+	return T;
+end function;
+
+// memo IV sono half bytes e D sono bits
+function HASH(IV,D,c_0,r)
+	D := Split(Ozs(D,r),r);
+	d := #D;
+	// prova consiglio 4
+	D[d] := Ozs(D[d],r);
+	//" d in HASH =",d;
+	for i in [1..d] do
+		YZ := PHOTON_256(IV);
+		Y := YZ[1..r];
+		Z := YZ[(r+1)..#YZ];
+		W := XOR(Y,D[i]);
+		IV := W cat Z;
+	end for;
+	// return IV xor c_0
+	return XOR(IV,c_0);	
+end function;
+
+function PhotonHASH(M)
+	r := 32;
+	two := [GF(2)!0,1,0,0,0,0,0,0];
+	one := [GF(2)!0,0,1,0,0,0,0,0];
+	if #M eq 0 then
+		IV := [GF(2)!0 : i in [1..256]];
+		//XOR(IV,one);
+		T := TAG(XOR(IV,one),256);
+		return BitToHexL(T,64);
+	end if;
+	M := HexToBit(M);
+	if #M le 128 then
+		if #M eq 128 then
+			c0 := two;
+		else
+			c0 := one;
+		end if; 
+		// TODO Questa cosa è sbagliata secondo me!!!
+		IV := Ozs(M,128) cat [0 : i in [1..128]];
+		T := TAG(XOR(IV,c0),256);
+		return BitToHexL(T,64);
+	end if;
+	M1 := M[1..128];
+	MM := M[129..#M];
+	if (#MM mod r) eq 0 then
+		c0 := one;
+	else
+		c0 := two;
+	end if;
+	IV := M1 cat [0 : i in [1..128]];
+	IV := HASH(IV,MM,c0,r);
+	T := TAG(IV,256);
+	ret := BitToHexL(T,64);
+	return ret;
+end function;
+
+DATA:=["",
+"FFFFFF",
+"000000000000000",
+"ABC",
+"0123456789",
+"ABCDEFFEDCBA",
+"0123456789ABCDEFFEDCBA9876543210",
+"00000",
+"00001",
+"6"];
+
+SH:=[ "44A99882FEA033566856A27E7F0C94DC84FAC7E411B08B890A4A574E3DB75D4A", 
+"67A495E625E19F613F0A5D06583B0D4E279AFEF3FF51EA76F2E113675A5486E2", 
+"BA29AA1E51C1376C018753AA77E13ECB777C3130B3CF38171A49A4D08E13AD52", 
+"80D048BD80F666004DF99D7F50C1D06E9660F15310AE6A2964320513301E70B9", 
+"6FFE58C1114BB8C74B087BFA5D3E3BBBBDDBE59EFD274CCCCE1A8FD58DBFB6DE", 
+"5C80BCEADF80B97ADD972158F3D824E0AA0D4A0B0AE79164BC41176BAD1EEA42", 
+"5F7B49F83D36522560B23E37F08BBDC292AB93591E6922BC3B4DBB8D71FB970D", 
+"93CF0223B07E278BD32A374B6479E5EED12837DB6649ED7F598DAAADC1F29CB8", 
+"09685B66594B113F1B03BE4F8D0816BDC336B2641D3719FC6C88F30EEBCA99C2", 
+"3A692E12AE0FEF9B6B304D6D20C8FB591923311CA8E70F0AB4F89953502AD5F0" ];
+
+
+
+
+time for i in [1..#DATA] do 
+	"test",i;
+	a:=PhotonHASH(DATA[i]);
+	//"Parity",#DATA[i] mod 2;
+	if a ne SH[i] then 
+		"error in Encryption";
+		"Initial DATA",DATA[i];
+		"Right", SH[i];
+		"Wrong",a;
+	end if;
+end for;
+
+
+
+
+
+//-------------ENCRIPTION-----------------------
+
+// CONSTANTS
+one 	:= [GF(2)!0,0,1,0,0,0,0,0];
+two 	:= [GF(2)!0,1,0,0,0,0,0,0];
+three 	:= [GF(2)!0,1,1,0,0,0,0,0];
+four 	:= [GF(2)!1,0,0,0,0,0,0,0];
+five 	:= [GF(2)!1,0,1,0,0,0,0,0];
+six 	:= [GF(2)!1,1,0,0,0,0,0,0];
+
+function PhotonAEADrEnc(K,N,A,M,r)
+	/*
+	INPUTS:  
+		-K is the key as a sequence of 128 bits seen as a string of 32 hexadecimal digits,
+           	-N is the nonce as a sequence of 128 bits seen as a string of 32 hexadecimal digits,
+           	-A is the associated data as a sequence of arbitrary length seen as a string of hexadecimal digits,
+           	-M is the plaintext as a sequence of  arbitrary length seen as a string of hexadecimal digits;
+  	OUTPUT:  
+		-C is the ciphertext as a sequence of the same length as P as a string of hexadecimal digits,
+	    	-T is the tag as a sequence of 128 bits seen as a string of 32 hexadecimal digits.
+	*/	
+	N := HexToBitL(N,128);
+	K := HexToBitL(K,128);
+	A := HexToBit(A);
+	lM := #M;
+	M := HexToBit(M);
+	C := [];
+	IV := N cat K;
+	if (#A eq 0) and (#M eq 0) then
+		T := TAG(XOR(IV,one),128);
+		return "",BitToHexL(T,32);
+	end if;
+	c0 := E1andE2(#M gt 0,(#A mod r) eq 0,one,two,three,four);
+	c1 := E1andE2(#A gt 0,(#M mod r) eq 0,one,two,five,six);
+	if not (A eq []) then
+		IV := HASH(IV,A,c0,r);
+	end if;
+	if not (M eq []) then
+		MM := Split(M,r);
+		for i in [1..#MM] do
+			PH := PHOTON_256(IV);
+			Y := PH[1..r];
+			Z := PH[(r+1)..256];
+			W,Ci := rho(Y,MM[i],r);
+			IV := W cat Z;
+			C := C cat Ci;
+		end for;
+		IV := XOR(IV,c1);
+	end if;
+	T := TAG(IV,128);
+	return BitToHexL(C,lM),BitToHexL(T,32);
+end function;
+
+function PhotonAEAD128Enc(K,N,A,M)
+	return PhotonAEADrEnc(K,N,A,M,128);
+end function;
+
+function PhotonAEAD32Enc(K,N,A,M)
+	return PhotonAEADrEnc(K,N,A,M,32);
+end function;
+
+
+//-------------DECRIPTION-----------------------
+
+function PhotonAEADrDec(K,N,A,C,r,T)
+	/* 
+	INPUTS:  
+		-K is the key as a sequence of 128 bits seen as a string of 32 hexadecimal digits,
+           	-N is the nonce as a sequence of 128 bits seen as a string of 32 hexadecimal digits,
+           	-A is the associated data as a sequence of arbitrary length seen as a string of hexadecimal digits,
+           	-M is the plaintext as a sequence of  arbitrary length seen as a string of hexadecimal digits;
+  	OUTPUT:  
+		-C is the ciphertext as a sequence of the same length as P as a string of hexadecimal digits,
+	    	-T is the tag as a sequence of 128 bits seen as a string of 32 hexadecimal digits.
+	*/	
+	N := HexToBitL(N,128);
+	K := HexToBitL(K,128);
+	A := HexToBit(A);
+	lC := #C;
+	C := HexToBit(C);
+	M := [];
+	IV := N cat K;
+	if (#A eq 0) and (#C eq 0) then
+		T_star := BitToHexL(TAG(XOR(IV,one),128),32);
+        	if T eq T_star then
+			return "";
+        	else 
+			return "Error";
+ 		end if;
+	end if;
+	c0 := E1andE2(#C gt 0,(#A mod r) eq 0,one,two,three,four);
+	c1 := E1andE2(#A gt 0,(#C mod r) eq 0,one,two,five,six);
+	if (A ne []) then
+		IV := HASH(IV,A,c0,r);
+	end if;
+	if (C ne []) then
+		CC := Split(C,r);
+		for i in [1..#CC] do
+			PH := PHOTON_256(IV);
+			Y := PH[1..r];
+			Z := PH[(r+1)..256];
+			W,Mi := rho_inv(Y,CC[i],r);
+			IV := W cat Z;
+            		M:= M cat Mi;
+		end for;
+		IV := XOR(IV,c1);
+	end if;
+	T_star := TAG(IV,128);
+	T_star := BitToHexL(T_star,32);
+	if T eq T_star then
+		return BitToHexL(M,lC);
+	else
+		return "Error";
+	end if;
+end function;
+
+function PhotonAEAD128Dec(K,N,A,C,T)
+	return PhotonAEADrDec(K,N,A,C,128,T);
+end function;
+
+function PhotonAEAD32Dec(K,N,A,C,T)
+	return PhotonAEADrDec(K,N,A,C,32,T);
+end function;
+
+
+DATA:=[
+    [ "2C45953543EB92CAED0ACE14F4A5199F", "FE31020172E7FBBB352338E4AA2C207C","01", "0123456789ABCDEF"],
+    [ "D86D5706D1FAEF8B6590B4A094CB2530", "209B0F4489B0B8E357F760D931F9A748","010101010101","1111111111" ], 
+    [ "AC6676EA4927CD8C388932B41E80E994", "87EBBF032CB5F90B90B78377A0238656","","" ],
+    [ "E685F7EE15BBDACC9B029D70958A87A9", "B20EDF5D57412914FE2A75CD5F83F7DD","0123456789ABCDEF","000000000000000000000000" ],
+    [ "43B6235DA262AE93084899444DB6EE9E", "EECEDD136C0F3E9D6F25F930887BFAD1","0123456789ABCDEFFEDCBA9876543210","ABCDEFFEDCBA" ], 
+    [ "168D752F83A92659CC1780A0620A4E27", "2D4240BA604F2E60E8B851BC5053D7A2","01234","00" ],
+    [ "216CEADAE0B640D66B97371A94B3AC09", "83EC5878EF4192C9604037D67B0A95B7","ABBA","BAAB" ],
+    [ "65032E017CA55779BEA2DB8FC3CF9EDA", "9839763FE0D86B090ADAD1583378028F","ABABABABA", "FFFFFFFFFFFFFFFFF" ], 
+    [ "33F43D97BA21941F8E33F1680EA98974", "49AC9A222AB2545FD35274655364144D","AAAAAAAAAAAAAAAA","" ],
+    [ "A72FC38409F9D253652D878F4B4CA7B6", "173D3F7FE9DF3A07EDE7DA7D968472B7","000000000000000000000000000000000000000000","FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF" ]
+];
+
+S:=
+[
+    [ "4F", "C68DC0C8038C7C3A2E6B7F0BE4AC1850" ],
+    [ "ADCA0485246C", "73329349D908EFD460F6275487AC90B2" ],
+    [ "", "9F903D2C228FA7EB0D750085423ABBAB" ],
+    [ "35CD22BC13B40C0F", "60E5E50B26103A8A6739322EEDFDA6B4" ],
+    [ "0835233EFF137EB5217EEF77DC90A31E", "3F401D53732EA27474D9783D0A66CCAD" ],
+    [ "FADC2", "4664ADA4A0BBC6D2AD56A9D165029C0C" ],
+    [ "B5FE", "CC22D47722C52AD7B77CA4F99903263E" ],
+    [ "AC89D9147", "02D037FBBC96C319DF767E8CE9D34566" ],
+    [ "12F97B1AA8A86A9D", "59F3E1BB6BE7F4B78ECA5366CC86B6D9" ],
+    [ "9C983CAECD9085A8506CF9CF0F704CA2054B18925D", 
+    "1D34AAA6E918268101C433EA90A0AB56" ]
+];
+
+
+
+S32:=
+[
+    [ "56", "C7F017ED124AA69561D99754536C522D" ],
+    [ "3ED967BAF52D", "94767E078CA7C179F856B6FB4EB0DBA1" ], 
+    [ "", "9F903D2C228FA7EB0D750085423ABBAB" ],
+    [ "B0BFFB4E104EC147", "12753CD28472482518C04521D55E0FB6" ],
+    [ "B351E5ABE01304D5E9F7BC78FF1B74A2", "37BA7BF55951F85429310C0CFEA420C5" ], 
+    [ "8E299", "4664ADA4A0BBC6D2AD56A9D165029C0C" ],
+    [ "93E0", "CC22D47722C52AD7B77CA4F99903263E" ],
+    [ "4DEA6E67F", "4AB74A234AB3B016B52BD4C12AAE4DE9" ], 
+    [ "DC6A2AF32C37C3F9", "E978295B33A8A65AE261E2092DB7AAF5" ],
+    [ "846B7E324C400EE1677CB500F4894B9FE52E30C69C", 
+    "26C7BA78491A0BD6EF1E65F8924396B2" ]
+];
+
+
+
+"---------ENC for 128----------";
+ 
+time for i in [1..#DATA] do 
+	a,b:=PhotonAEAD128Enc(DATA[i][1],DATA[i][2],DATA[i][4],DATA[i][3]);
+	if a ne S[i][1] or b ne S[i][2] then 
+		"error in Encryption, test",i;
+		"Initial DATA",DATA[i];
+		"Right", S[i];
+		"Wrong",a,b;
+	else
+		"test",i,"passed";
+	end if;
+end for;	
+
+
+"---------ENC for 32----------";
+
+time for i in [1..#DATA] do 
+ 	a,b:=PhotonAEAD32Enc(DATA[i][1],DATA[i][2],DATA[i][4],DATA[i][3]);
+	if a ne S32[i][1] or b ne S32[i][2] then 
+		"error in Encryption, test",i;
+		"Initial DATA",DATA[i];
+		"Right", S32[i];
+		"Wrong",a,b;
+	else
+		"test",i,"passed";
+	end if;
+end for;
+
+
+
+"---------DEC for 128----------";
+
+time for i in [1..#DATA] do 
+	a:=PhotonAEAD128Dec(DATA[i][1],DATA[i][2],DATA[i][4],S[i][1],S[i][2]);
+	if a ne DATA[i][3] then 
+		"error in Decryption, test",i;
+		"Initial DATA",[DATA[i][1],DATA[i][2],DATA[i][4],S[i][1],S[i][2]];
+		"Right", DATA[i][3];
+		"Wrong",a;
+	else
+		"test",i,"passed";
+	end if;
+end for;	
+
+
+
+"---------DEC for 32----------";
+
+time for i in [1..#DATA] do 
+	a:=PhotonAEAD32Dec(DATA[i][1],DATA[i][2],DATA[i][4],S32[i][1],S32[i][2]);
+	if a ne DATA[i][3] then 
+		"error in Decryption, test",i;
+		"Initial DATA",[DATA[i][1],DATA[i][2],DATA[i][4],S32[i][1],S32[i][2]];
+		"Right", DATA[i][3];
+		"Wrong",a;
+	else
+		"test",i,"passed";
+	end if;
+end for;
+

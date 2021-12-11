@@ -1,29 +1,25 @@
-//-----------HANDLING FUNCTIONS-----------------
+//	PHOTON-Beetle Authenticated Encryption and Hash Family
+
+// Implementation in MAGMA by Giulia Salvatori and Giacomo Borin
+// For the Master course Algebraic Cryptography
 
 
-// basic functions for conversion
-// lenght l
+//-----------CONVERSION FUNCTIONS----------------
+
+// Integer to a seq of a fixed lenght l
 function IntToSeq(n,l)
 	return ChangeUniverse(Reverse(Intseq(n,2,l)),GF(2));
 end function;
+
 function SeqToInt(SEQ)
 	return Seqint(Reverse(ChangeUniverse(Eltseq(SEQ),Integers())),2);
 end function;
 
-
-// from a string of hex returns the corresponding bits sequence
+// from a string of hex returns the corresponding half bytes sequence
 function HexToBit(w)
 	if w eq "" then 
 		return [];
 	end if;
-	//OUT := ChangeUniverse(Reverse(Intseq(StringToInteger(w,16),2)),GF(2));
-	// the 0s part is necessary to pad the result if the first term is of <4 bits
-	// PROVA CAMBIO PAD TO BYTE
-	//return [ 0 : i in [1..((8-#OUT) mod 8)]] cat OUT;
-	//if #w mod 2 eq 1 then
-	//	w := "0" cat w;
-	//end if;
-	//return &cat[ ChangeUniverse(Reverse(Intseq(StringToInteger(w[i..i+1],16),2,8)),GF(2)) : i in [1..#w by 2]];
 	return ChangeUniverse(Reverse(Intseq(StringToInteger(w,16),2,4*#w)),GF(2));
 end function;
 
@@ -31,11 +27,11 @@ function HexToBitL(w,l)
 	return ChangeUniverse(Reverse(Intseq(StringToInteger(w,16),2,l)),GF(2));
 end function;
 
-
 function BitToHex(S)
 	return IntegerToString(SeqToInt(S),16);
 end function;
 
+// this function convert a bit sequence to a hexadecimal string of fixed lenght
 function BitToHexL(S,lenght)
 	if lenght eq 0 then
 		return "";
@@ -47,19 +43,24 @@ function BitToHexL(S,lenght)
 	return OUT;
 end function;
 
+// Functions for conversion of a List of half bytes to a Matrix (and viceversa)
+// it uses the specifications and the advices given by the professors
 
 function ListToMatrix(X)
 	Y := Partition(X,2);
 	return [&cat[ Reverse(Y[i]) : i in [(4*j - 3)..(4*j)]]: j in [1..8]];
 end function;
 
-
 function MatrixToList(M)
+	// swapping of the bytes
 	for i in [1..8] do
 		M[i]:= [M[i][2] , M[i][1] , M[i][4], M[i][3], M[i][6], M[i][5], M[i][8], M[i][7]];
 	end for;
 	return &cat[M[i] : i in [1..8]];
 end function;
+
+
+//----------LOGICAL and HANDLING FUNCTION--------
 
 
 function E1andE2(E1,E2,a,b,c,d)
@@ -74,10 +75,6 @@ function E1andE2(E1,E2,a,b,c,d)
 	end if;
 end function;
 
-
-//------ROBA giacomo----------------------------
-
-// funzione per fare lo split in sottosequenze di r elementi (tranne l'ultima che sarà bho)
 function Split(D,r)
 	len := #D;
 	if len le r then
@@ -104,7 +101,7 @@ end function;
 
 
 
-//-----------PHOTON-----------------------------
+//-----------PHOTON_256 permutation--------------
 
 function SubCells(X)
 	SBOX := 
@@ -129,9 +126,6 @@ function SubCells(X)
 	// remark : the sequence are indexed on [1..16] so I need +1
 	return [ [ SBOX[Seqint(Reverse(ChangeUniverse(X[i][j],Integers())),2) + 1 ] : j in [1..8]] : i in [1..8]];
 end function;
-
-//[ SeqToInt(SubCells(IntToSeq(i))) : i in [0..15]];
-
 
 function AddCostant(X,k) 
     RC:=[
@@ -178,17 +172,15 @@ function ShiftRows(X)
     return X_new;
 end function;
 
-//ShiftRows(M);
-
 function MixColumnSerial(X)
 	F<g>:=GF(2,4);
 	S := [ 2, 4, 2, 11, 2, 8, 5, 6 ];
 	LastRow := [ F!(Intseq(S[i],2,4)) : i in [1..#S]];
-	//LastRow := [g^S[i] : i in [1..8]];
-	s := 
-		[ F!0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 
+	s := [ 
+		F!0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 
 		0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0,
-		1 ] cat LastRow;
+		1
+	] cat LastRow;
 	M := Matrix(F,8,8,s);
 	//M;
 	XM := Matrix([[ F!Reverse(X[i][j]) : j in [1..8]] : i in [1..8]]);

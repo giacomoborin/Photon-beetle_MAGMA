@@ -103,8 +103,7 @@ end function;
 
 //-----------PHOTON_256 permutation--------------
 
-function SubCells(X)
-	SBOX := 
+SBOX := 
 	[
 		[ GF(2)!1, 1, 0, 0 ],
 		[ GF(2)!0, 1, 0, 1 ],
@@ -123,6 +122,8 @@ function SubCells(X)
 		[ GF(2)!0, 0, 0, 1 ],
 		[ GF(2)!0, 0, 1, 0 ]
 	];
+
+function SubCells(X)
 	// remark : the sequence are indexed on [1..16] so I need +1
 	return [ [ SBOX[Seqint(Reverse(ChangeUniverse(X[i][j],Integers())),2) + 1 ] : j in [1..8]] : i in [1..8]];
 end function;

@@ -224,7 +224,7 @@ function Ozs(V,r)
     	for i in {1..(r-#V-8)} do 
 		O:= Append(O,0); 
     	end for; 
-    	return O; 
+    	return O;
 end function;
 
 function ShufflePHOTON(S,r) 
@@ -271,18 +271,25 @@ function TruncBlock(S,i)
 end function;
 
 
+//------------CONSTANTS--------------------------
 
-//-----------TAG and HASH-----------------------
+one 	:= [GF(2)!0,0,1,0,0,0,0,0];
+two 	:= [GF(2)!0,1,0,0,0,0,0,0];
+three 	:= [GF(2)!0,1,1,0,0,0,0,0];
+four 	:= [GF(2)!1,0,0,0,0,0,0,0];
+five 	:= [GF(2)!1,0,1,0,0,0,0,0];
+six 	:= [GF(2)!1,1,0,0,0,0,0,0];
+
+
+
+//-----------TAG and HASH------------------------
 
 function TAG(T_0,tau)
 	T := [];
 	T_i := T_0;
 	for i in [1..Ceiling(tau/128)] do
-		//i;	
 		T_i := PHOTON_256(T_i);
-		//T_i;
 		T cat:= T_i[1..128];
-		//T;
 	end for;
 	return T;
 end function;
@@ -307,8 +314,6 @@ end function;
 
 function PhotonHASH(M)
 	r := 32;
-	two := [GF(2)!0,1,0,0,0,0,0,0];
-	one := [GF(2)!0,0,1,0,0,0,0,0];
 	if #M eq 0 then
 		IV := [GF(2)!0 : i in [1..256]];
 		//XOR(IV,one);
@@ -344,13 +349,6 @@ end function;
 
 //-------------ENCRIPTION-----------------------
 
-// CONSTANTS
-one 	:= [GF(2)!0,0,1,0,0,0,0,0];
-two 	:= [GF(2)!0,1,0,0,0,0,0,0];
-three 	:= [GF(2)!0,1,1,0,0,0,0,0];
-four 	:= [GF(2)!1,0,0,0,0,0,0,0];
-five 	:= [GF(2)!1,0,1,0,0,0,0,0];
-six 	:= [GF(2)!1,1,0,0,0,0,0,0];
 
 function PhotonAEADrEnc(K,N,A,M,r)
 	/*

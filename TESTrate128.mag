@@ -10,8 +10,8 @@ time for i in [1..#DATA] do
 		"Right", DATA[i][5];
 		"Wrong",a,b;
 		noerr := false;
-	else
-		"test",i,"passed";
+//	else
+//		"test",i,"passed";
 	end if;
 end for;	
 
@@ -28,8 +28,8 @@ time for i in [1..#DATA] do
 		"Right", DATA[i][3];
 		"Wrong",a;
 		noerr := false;
-	else
-		"test",i,"passed";
+//	else
+//		"test",i,"passed";
 	end if;
 end for;	
 

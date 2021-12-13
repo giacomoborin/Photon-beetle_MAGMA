@@ -1,5 +1,6 @@
 # Photon-beetle_MAGMA
- Implementation of Photon-beetle algorithm for lightweight cryptography in MAGMA.
+ Implementation of Photon-beetle algorithm for lightweight cryptography in MAGMA. 
+ 
  Autors:
  Giulia Salvatori,
  Giacomo Borin,

@@ -3,6 +3,9 @@ MSG := ["","00","0001","000102","00010203","0001020304","000102030405","00010203
 
 noerr := true;
 time for i in [1..#MSG] do
+	if i mod 100 eq 0 then
+		"test",i,"passed";
+	end if;
 	if not (PhotonHASH(MSG[i]) eq DIG[i]) then
 		"Error in index",i;     
 		noerr := false;

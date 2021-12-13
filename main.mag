@@ -217,14 +217,10 @@ function Ozs(V,r)
 	// Caso particolare di stringa lunga 124 che crea problemi:
 	error if (#V eq 124) and (r eq 128), "Error in Ozs_128, since it is mean to accept only sequences of Bytes";
 	// Cosa aggiunta da GIACOMO
-	if #V ge r then
+	if (#V mod r) eq 0 then
 		return V;
 	end if;
-    	O:=V cat [GF(2)!0,0,0,0,0,0,0,1]; 
-    	for i in {1..(r-#V-8)} do 
-		O:= Append(O,0); 
-    	end for; 
-    	return O;
+    	return V cat [GF(2)!0,0,0,0,0,0,0,1] cat [0 : _ in [1..(r - (#V mod r) - 8)]]; 
 end function;
 
 function ShufflePHOTON(S,r) 
@@ -296,11 +292,8 @@ end function;
 
 // memo IV sono half bytes e D sono bits
 function HASH(IV,D,c_0,r)
-	D := Split(Ozs(D,r),r);
+	D := Partition(Ozs(D,r),r);
 	d := #D;
-	// prova consiglio 4
-	D[d] := Ozs(D[d],r);
-	//" d in HASH =",d;
 	for i in [1..d] do
 		YZ := PHOTON_256(IV);
 		Y := YZ[1..r];
